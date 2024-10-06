@@ -8,6 +8,7 @@ export default function HomePage() {
   const [peerId, setPeerId] = useState('');
   const [dataChannelReady, setDataChannelReady] = useState(false); // New state for tracking the ready state
   const [shareableLink, setShareableLink] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null); // State for the selected file
 
   // Initialize WebRTC Peer connection
   const initPeerConnection = () => {
@@ -38,27 +39,50 @@ export default function HomePage() {
     });
   };
 
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    setSelectedFile(file);
+  };
+
+  // Send the selected file over WebRTC DataChannel
   const sendFile = () => {
-    if (dataChannelReady) {
-      peer.send("Hello, this is a test message!");
+    if (dataChannelReady && selectedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileData = reader.result;
+        peer.send(fileData); // Send file data over the peer connection
+        console.log('File sent:', selectedFile.name);
+      };
+      reader.readAsArrayBuffer(selectedFile); // Read the file as ArrayBuffer
     } else {
-      console.error("DataChannel is not open yet!");
+      console.error("DataChannel is not open yet or no file selected!");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-4xl font-bold">P2P File Sharing</h1>
-      <button onClick={initPeerConnection}>Generate Share Link</button>
+
+      {/* File Picker */}
+      <input type="file" onChange={handleFileSelect} className="mt-4" />
+      
+      <button onClick={initPeerConnection} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+        Generate Share Link
+      </button>
+
       {shareableLink && (
-        <div>
+        <div className="mt-4">
           <p>Share this link with the receiver:</p>
           <a href={shareableLink} target="_blank" className="text-blue-600 underline">
             {shareableLink}
           </a>
         </div>
       )}
-      <button onClick={sendFile} disabled={!dataChannelReady}>Send File</button>
+
+      <button onClick={sendFile} disabled={!dataChannelReady || !selectedFile} className="mt-4 px-4 py-2 bg-green-500 text-white rounded">
+        Send File
+      </button>
     </div>
   );
 }
